@@ -1,6 +1,5 @@
 
 import './App.css';
-import ControlPanel from './components/ControlPanel';
 import PumpStatusMonitor from './components/PumpStatusMonitor';
 
 
