@@ -11,8 +11,8 @@ This project is a React-based frontend to monitor pump status using AWS IoT Core
 ### 1. 📦 Clone the Repository
 
 ```bash
-git clone https://github.com/your-username/your-repo-name.git
-cd your-repo-name
+git clone https://github.com/Harshitchopde/flostat-sample-dashboard.git
+cd flostat-sample-dashboard
 
 npm install
 # or
