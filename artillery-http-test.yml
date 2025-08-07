@@ -1,0 +1,10 @@
+config:
+  target: 'https://awstraining.flostat.com/'  # <- Replace with your URL
+  phases:
+    - duration: 300  # Test duration in seconds (5 mins)
+      arrivalRate: 50  # Users per second
+
+scenarios:
+  - flow:
+      - get:
+          url: '/'
