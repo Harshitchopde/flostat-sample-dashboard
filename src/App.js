@@ -1,6 +1,6 @@
 
 import './App.css';
-import PumpStatusMonitor from './components/try/PumpStatusMonitor2';
+import PumpStatusMonitor from './components/try/PumpStatusMonitor';
 // import PumpStatusMonitor from './components/PumpStatusMonitor';
 
 
