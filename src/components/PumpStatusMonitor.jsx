@@ -59,7 +59,7 @@ export default function PumpStatusMonitor() {
 
     // Cleanup on component unmount
     return () => {
-      console.log("🧹 Cleaning up PumpStatusMonitor...");
+      // console.log("🧹 Cleaning up PumpStatusMonitor...");
       
       // Clear any pending reconnect timeouts
       if (reconnectTimeoutRef.current) {

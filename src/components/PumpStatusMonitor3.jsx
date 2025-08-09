@@ -35,7 +35,7 @@ export default function PumpStatusMonitor() {
       const client = mqtt.connect(signedUrl, {
         clientId: "mqtt-client-" + Math.floor(Math.random() * 100000),
         keepalive: 60,
-        reconnectPeriod: 3000,
+        reconnectPeriod: 5000,
         // clean: true,
         // connectTimeout: 30000,
       });
@@ -84,6 +84,7 @@ export default function PumpStatusMonitor() {
             console.warn(
               "🔌 Disconnected from AWS IoT, attempting credential refresh..."
             );
+            // adfad
             setStatus("🔌 Disconnected");
 
             disconnectTimeRef.current = new Date();
