@@ -18,8 +18,6 @@ const topic = "pump/status";
 const reconnectDelay = 5000; // retry every 5 sec
 
 export function startWebSocket() {
-//   if (client) return; // already running
-
   connectToAWS();
   window.addEventListener("online", handleOnline);
 }
@@ -28,14 +26,12 @@ function connectToAWS() {
   store.dispatch(setStatus("connecting"));
 
   AWS.config.region = AWS_REGION;
-  console.log("IPOOL ",IDENTITY_POOL)
   AWS.config.credentials = new AWS.CognitoIdentityCredentials({
     IdentityPoolId: IDENTITY_POOL,
   });
 
   AWS.config.credentials.get((err) => {
     if (err) {
-        console.log("cred error ",err)
       store.dispatch(setError(`Cognito Error: ${err.message}`));
       store.dispatch(setStatus("error"));
       retryConnect();
@@ -47,7 +43,7 @@ function connectToAWS() {
 
 function setupConnection(credentials) {
   const signedUrl = createSignedUrl(credentials);
-    console.log("Signed url : ",signedUrl)
+
   client = mqtt.connect(signedUrl, {
     clientId: "mqtt-client-" + Math.floor(Math.random() * 100000),
     keepalive: 60,
@@ -56,12 +52,16 @@ function setupConnection(credentials) {
 
   client.on("connect", () => {
     store.dispatch(setStatus("connected"));
+    console.log("✅ Connected to AWS IoT");
     client.subscribe(topic);
 
     if (disconnectTime) {
       const downtime = Math.round((Date.now() - lastRefreshTime) / 1000);
       store.dispatch(
-        addDisconnectEvent({ disconnectTime, duration: downtime })
+        addDisconnectEvent({
+          disconnectTime: disconnectTime.toISOString(), // ✅ always store as string
+          duration: downtime,
+        })
       );
       disconnectTime = null;
     }
@@ -73,6 +73,7 @@ function setupConnection(credentials) {
 
   client.on("error", (err) => {
     store.dispatch(setError(`MQTT Error: ${err.message}`));
+    console.error("❌ MQTT Error:", err);
     if (err?.message?.includes("403")) {
       attemptCredentialRefreshAndReconnect();
     }
@@ -80,14 +81,13 @@ function setupConnection(credentials) {
 
   client.on("close", () => {
     store.dispatch(setStatus("disconnected"));
-    disconnectTime = new Date();
+    console.warn("🔌 Disconnected from AWS IoT, attempting credential refresh...");
+    disconnectTime = new Date(); // we'll convert this to string only when dispatching
   });
 }
 
 function retryConnect() {
-  setTimeout(() => {
-    connectToAWS();
-  }, reconnectDelay);
+  setTimeout(connectToAWS, reconnectDelay);
 }
 
 function attemptCredentialRefreshAndReconnect() {
@@ -96,6 +96,7 @@ function attemptCredentialRefreshAndReconnect() {
   if (now - lastRefreshTime < 60000) return;
 
   refreshInProgress = true;
+  console.log("🔄 Refreshing AWS credentials...");
   AWS.config.credentials.refresh((err) => {
     refreshInProgress = false;
     if (err) {
@@ -114,6 +115,7 @@ function attemptCredentialRefreshAndReconnect() {
     setupConnection(AWS.config.credentials);
   });
 }
+
 function handleOnline() {
   if (!client?.connected) {
     connectToAWS();
