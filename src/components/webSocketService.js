@@ -9,6 +9,7 @@ import {
 } from "../slice/webSocketSlice";
 import { AWS_REGION, IDENTITY_POOL } from "../constants";
 import { createSignedUrl } from "./createSignedUrl";
+import { sendNotification } from "./notifications";
 
 let client = null;
 let disconnectTime = null;
@@ -69,6 +70,7 @@ function setupConnection(credentials) {
 
   client.on("message", (_topic, message) => {
     store.dispatch(setPumpMessage(message.toString()));
+    // sendNotification("New messages",message.toString());
   });
 
   client.on("error", (err) => {

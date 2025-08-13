@@ -7,6 +7,15 @@ import { startWebSocket } from './components/webSocketService';
 
 
 function App() {
+  if(Notification.permission==="default"){
+    Notification.requestPermission().then((permission) => {
+      if (permission === "granted") {
+        console.log("✅ Notification permission granted");
+      } else {
+        console.warn("🚫 Notification permission denied");
+      }
+    });
+  }
   useEffect(()=>{
     startWebSocket();
   },[])
