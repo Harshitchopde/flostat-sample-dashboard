@@ -4,153 +4,161 @@ import mqtt from "mqtt";
 import { AWS_REGION, IDENTITY_POOL } from "../constants";
 import { createSignedUrl } from "./createSignedUrl";
 import { formatDateTime } from "./timeformate";
+import { useSelector } from "react-redux";
+
 
 export default function PumpStatusMonitor() {
-  const [status, setStatus] = useState("Connecting...");
-  const [pumpMessage, setPumpMessage] = useState("");
-  const [disconnectEvents, setDisconnectEvents] = useState([]);
-
-  const clientRef = useRef(null);
-  const disconnectTimeRef = useRef(null);
-  const refreshInProgressRef = useRef(false);
-  const lastRefreshTimeRef = useRef(0);
-  const topic = "pump/status";
+  // const [status, setStatus] = useState("Connecting...");
+  // const [pumpMessage, setPumpMessage] = useState("");
+  // const [disconnectEvents, setDisconnectEvents] = useState([]);
+  const { status, pumpMessage,disconnectEvents,error } = useSelector(state=> state.websocket)
+  // const answer = useSelector((state)=> state.websocket)
+  // console.log("form psm: ",answer);
 
   useEffect(() => {
-    AWS.config.region = AWS_REGION;
-    AWS.config.credentials = new AWS.CognitoIdentityCredentials({
-      IdentityPoolId: IDENTITY_POOL,
-    });
-    AWS.config.credentials.get((err) => {
-      if (err) {
-        console.error("❌ Cognito Credentials Error:", err);
-        setStatus("❌ Cognito Error!");
-        return;
-      }
-      setupConnection(AWS.config.credentials);
-    });
-
-    const setupConnection = (credentials) => {
-      const signedUrl = createSignedUrl(credentials);
-      const client = mqtt.connect(signedUrl, {
-        clientId: "mqtt-client-" + Math.floor(Math.random() * 100000),
-        keepalive: 60,
-        reconnectPeriod: 5000,
-        // clean: true,
-        // connectTimeout: 30000,
-      });
-      clientRef.current = client;
-
-      client.on("connect", () => {
-        console.log("✅ Connected to AWS IoT");
-        setStatus("✅ Connected!");
-        client.subscribe(topic);
-        if (disconnectTimeRef.current) {
-          const reconnectTime = new Date();
-          const downtime = Math.round(
-            (reconnectTime - lastRefreshTimeRef.current) / 1000
-          );
-          const formattedTime = formatDateTime(disconnectTimeRef.current);
-
-          setDisconnectEvents((prev) => [
-            {
-              disconnectTime: formattedTime,
-              duration: downtime,
-            },
-            ...prev,
-          ]);
-
-          disconnectTimeRef.current = null;
-        }
-      });
-      client.on("message", (_topic, message) => {
-        // console.log("2.message")
-        setPumpMessage(message.toString());
-      });
-      client.on("error", (err) => {
-        // console.log("3.Error: -> ",err)
-        console.error("❌ MQTT Error:", err);
-        if (err?.message?.includes("403")) {
-          console.warn("🔑 Credentials likely expired, attempting refresh...");
-          // attemptCredentialRefreshAndReconnect(); //1
-        } else {
-          setStatus("❌ MQTT Error!");
-        }
-      });
-      client.on("close", () => {
-        if (!client.connected && !refreshInProgressRef.current) {
-          const now = Date.now();
-        //   if (now - lastRefreshTimeRef.current >= 60000) {
-            console.warn(
-              "🔌 Disconnected from AWS IoT, attempting credential refresh..."
-            );
-            // adfad
-            setStatus("🔌 Disconnected");
-
-            disconnectTimeRef.current = new Date();
-
-            attemptCredentialRefreshAndReconnect();
-          } else {
-            console.warn("🔁 Cooldown active, skipping credential refresh.");
-          }
-        // } else {
-        //   console.warn(
-        //     "ℹ️ MQTT client still considered connected or refresh already in progress."
-        //   );
-        // }
-      });
-
-      console.log("client : ", client);
-      client.on("reconnect", () => {
-        console.log("t: ", client);
-        console.log("5.reconnect");
-      });
-    };
-
-    const attemptCredentialRefreshAndReconnect = () => {
-    const now = Date.now();
-    // avoid duplicate refreshes
-    if (refreshInProgressRef.current) return;
-
-    // cooldown
-    if (now - lastRefreshTimeRef.current < 60000) return;
-    refreshInProgressRef.current = true;
-    console.log("🔄 Refreshing AWS credentials...");
-    AWS.config.credentials.refresh((err) => {
-      if (err) {
-        console.error("❌ Credential refresh failed:", err);
-        setStatus("❌ Credential Refresh Failed");
-        refreshInProgressRef.current = false;
-        return;
-      }
-      console.log("✅ Credentials refreshed successfully.");
-      lastRefreshTimeRef.current = Date.now();
-      refreshInProgressRef.current = false;
-
-      // Close existing client
-      if (clientRef.current) {
-        clientRef.current.removeAllListeners();
-        clientRef.current.end(true);
-        clientRef.current = null;
-      }
-      setupConnection(AWS.config.credentials);
-    });
-  };
-  const handleOnline = () => {
-      console.log("ONline wala code ");
-      if (!clientRef.current?.connected) {
-        attemptCredentialRefreshAndReconnect();
-      }
-    };
-    window.addEventListener("online", handleOnline);
-    return () => {
-      if (clientRef.current) {
-        clientRef.current.end(true);
-        clientRef.current = null;
-      }
-      window.removeEventListener("online", handleOnline);
-    };
+    // initWebSocket();
   }, []);
+  // const clientRef = useRef(null);
+  // const disconnectTimeRef = useRef(null);
+  // const refreshInProgressRef = useRef(false);
+  // const lastRefreshTimeRef = useRef(0);
+  // const topic = "pump/status";
+
+  // useEffect(() => {
+  //   AWS.config.region = AWS_REGION;
+  //   AWS.config.credentials = new AWS.CognitoIdentityCredentials({
+  //     IdentityPoolId: IDENTITY_POOL,
+  //   });
+  //   AWS.config.credentials.get((err) => {
+  //     if (err) {
+  //       console.error("❌ Cognito Credentials Error:", err);
+  //       setStatus("❌ Cognito Error!");
+  //       return;
+  //     }
+  //     setupConnection(AWS.config.credentials);
+  //   });
+
+  //   const setupConnection = (credentials) => {
+  //     const signedUrl = createSignedUrl(credentials);
+  //     const client = mqtt.connect(signedUrl, {
+  //       clientId: "mqtt-client-" + Math.floor(Math.random() * 100000),
+  //       keepalive: 60,
+  //       reconnectPeriod: 5000,
+  //       // clean: true,
+  //       // connectTimeout: 30000,
+  //     });
+  //     clientRef.current = client;
+
+  //     client.on("connect", () => {
+  //       console.log("✅ Connected to AWS IoT");
+  //       setStatus("✅ Connected!");
+  //       client.subscribe(topic);
+  //       if (disconnectTimeRef.current) {
+  //         const reconnectTime = new Date();
+  //         const downtime = Math.round(
+  //           (reconnectTime - lastRefreshTimeRef.current) / 1000
+  //         );
+  //         const formattedTime = formatDateTime(disconnectTimeRef.current);
+
+  //         setDisconnectEvents((prev) => [
+  //           {
+  //             disconnectTime: formattedTime,
+  //             duration: downtime,
+  //           },
+  //           ...prev,
+  //         ]);
+
+  //         disconnectTimeRef.current = null;
+  //       }
+  //     });
+  //     client.on("message", (_topic, message) => {
+  //       // console.log("2.message")
+  //       setPumpMessage(message.toString());
+  //     });
+  //     client.on("error", (err) => {
+  //       // console.log("3.Error: -> ",err)
+  //       console.error("❌ MQTT Error:", err);
+  //       if (err?.message?.includes("403")) {
+  //         console.warn("🔑 Credentials likely expired, attempting refresh...");
+  //         // attemptCredentialRefreshAndReconnect(); //1
+  //       } else {
+  //         setStatus("❌ MQTT Error!");
+  //       }
+  //     });
+  //     client.on("close", () => {
+  //       if (!client.connected && !refreshInProgressRef.current) {
+  //         const now = Date.now();
+  //       //   if (now - lastRefreshTimeRef.current >= 60000) {
+  //           console.warn(
+  //             "🔌 Disconnected from AWS IoT, attempting credential refresh..."
+  //           );
+  //           // adfad
+  //           setStatus("🔌 Disconnected");
+
+  //           disconnectTimeRef.current = new Date();
+
+  //           attemptCredentialRefreshAndReconnect();
+  //         } else {
+  //           console.warn("🔁 Cooldown active, skipping credential refresh.");
+  //         }
+  //       // } else {
+  //       //   console.warn(
+  //       //     "ℹ️ MQTT client still considered connected or refresh already in progress."
+  //       //   );
+  //       // }
+  //     });
+
+  //     console.log("client : ", client);
+  //     client.on("reconnect", () => {
+  //       console.log("t: ", client);
+  //       console.log("5.reconnect");
+  //     });
+  //   };
+
+  //   const attemptCredentialRefreshAndReconnect = () => {
+  //   const now = Date.now();
+  //   // avoid duplicate refreshes
+  //   if (refreshInProgressRef.current) return;
+
+  //   // cooldown
+  //   if (now - lastRefreshTimeRef.current < 60000) return;
+  //   refreshInProgressRef.current = true;
+  //   console.log("🔄 Refreshing AWS credentials...");
+  //   AWS.config.credentials.refresh((err) => {
+  //     if (err) {
+  //       console.error("❌ Credential refresh failed:", err);
+  //       setStatus("❌ Credential Refresh Failed");
+  //       refreshInProgressRef.current = false;
+  //       return;
+  //     }
+  //     console.log("✅ Credentials refreshed successfully.");
+  //     lastRefreshTimeRef.current = Date.now();
+  //     refreshInProgressRef.current = false;
+
+  //     // Close existing client
+  //     if (clientRef.current) {
+  //       clientRef.current.removeAllListeners();
+  //       clientRef.current.end(true);
+  //       clientRef.current = null;
+  //     }
+  //     setupConnection(AWS.config.credentials);
+  //   });
+  // };
+  // const handleOnline = () => {
+  //     console.log("ONline wala code ");
+  //     if (!clientRef.current?.connected) {
+  //       attemptCredentialRefreshAndReconnect();
+  //     }
+  //   };
+  //   window.addEventListener("online", handleOnline);
+  //   return () => {
+  //     if (clientRef.current) {
+  //       clientRef.current.end(true);
+  //       clientRef.current = null;
+  //     }
+  //     window.removeEventListener("online", handleOnline);
+  //   };
+  // }, []);
 
 
   return (
