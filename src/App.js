@@ -2,7 +2,7 @@
 import { useEffect } from 'react';
 import './App.css';
 import PumpStatusMonitor from './components/PumpStatusMonitor';
-import { startWebSocket } from './components/webSocketService';
+import { startWebSocket , subscribe,stopWebSocket} from './components/webSocketService2';
 
 
 
@@ -18,6 +18,11 @@ function App() {
   }
   useEffect(()=>{
     startWebSocket();
+    subscribe("pump/status");
+
+    return () => {
+      stopWebSocket();
+    };
   },[])
   return (
     <div className="App flex w-full h-[100vh] items-center justify-center border border-blue-500">
