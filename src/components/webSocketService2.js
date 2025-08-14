@@ -208,7 +208,21 @@ function scheduleReconnect() {
     // If offline, wait; online handler will connect.
     if (!navigator.onLine) return;
     safeEndClient();
-    openMqttWithCurrentCreds();
+    // Instead of directly reconnecting, try refreshing credentials first
+    const now = Date.now();
+    const credsExist = AWS.config.credentials && AWS.config.credentials.accessKeyId;
+    const credsExpiredSoon =
+      credsExist &&
+      AWS.config.credentials.expireTime &&
+      AWS.config.credentials.expireTime.getTime() - now < 60_000; // less than 1 min left
+    console.warn("schedule: ",credsExpiredSoon,credsExist)
+    console.warn("Expire time: ",AWS.config.credentials.expireTime.getTime() - now )
+    if (!credsExist || credsExpiredSoon) {
+      console.warn("🔄 Credentials missing/expiring soon, refreshing before reconnect...");
+      credentialRefreshAndReconnect("expire cred");
+    } else {
+      openMqttWithCurrentCreds();
+    }
   }, delay);
 }
 
