@@ -7,6 +7,7 @@ import {
   setPumpMessage,
   addDisconnectEvent,
   setError,
+  setDevicesStatus,
 } from "../slice/webSocketSlice";
 
 import {
@@ -142,6 +143,15 @@ function wireClientEvents() {
   client.on("message", (topic, message) => {
     // Application-specific handling
     store.dispatch(setPumpMessage(message.toString()));
+      try {
+      const deviceDetail = JSON.parse(message.toString());
+      const device = Object.keys(deviceDetail)[0];
+      const status = deviceDetail[device];
+      // console.log("d ",device+" status "+status)
+      store.dispatch(setDevicesStatus({device,status}))
+    } catch (e) {
+      console.error("Invalid JSON:", e);
+    }
   });
 
   client.on("error", (err) => {

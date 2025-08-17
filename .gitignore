@@ -7,7 +7,7 @@
 # components
 # testing
 /coverage
-
+rough
 # production
 /build
 .env

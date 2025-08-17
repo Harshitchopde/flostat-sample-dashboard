@@ -4,6 +4,9 @@ const initialState = {
     status:"connecting",
     pumpMessage:"",
     disconnectEvents:[],
+    devices:[],
+    deviceStatus:{},
+    topics:[],
     error:null,
 }
 const webSocketSlice = createSlice({
@@ -19,8 +22,18 @@ const webSocketSlice = createSlice({
         addDisconnectEvent: (state, action) => {
             state.disconnectEvents.unshift(action.payload);
         },
+        setTopics:(state,action)=>{
+            state.topics = action.payload;
+        },
         setError: (state, action) => {
         state.error = action.payload;
+        },
+        setDevices:(state,action)=>{
+            state.devices = action.payload
+        },
+        setDevicesStatus:(state,action)=>{
+            const {device,status} = action.payload;
+            state.deviceStatus[device] = status;
         },
         resetWebSocket: () => initialState,
     
@@ -32,7 +45,10 @@ export const {
     setPumpMessage,
     addDisconnectEvent,
     setError,
-    resetWebSocket
+    resetWebSocket,
+    setDevices,
+    setDevicesStatus,
+    setTopics
 } = webSocketSlice.actions;
 
 export default webSocketSlice.reducer;

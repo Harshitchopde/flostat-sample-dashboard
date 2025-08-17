@@ -1,10 +1,35 @@
 
-import { useSelector } from "react-redux";
+import axios from "axios";
+import { useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { AWS_REGION, BASE_URL_LAMBDA } from "../constants";
+import { setDevices, setTopics } from "../slice/webSocketSlice";
 
 
 export default function PumpStatusMonitor() {
-  const { status, pumpMessage,disconnectEvents,error } = useSelector(state=> state.websocket)
+  const { status,devices,deviceStatus, pumpMessage,disconnectEvents,error } = useSelector(state=> state.websocket)
+  const [org_id,setOrg_id] = useState("")
+  const dispatch = useDispatch();
+  // console.log("BS: ",deviceStatus)
+  // console.log("dd", deviceStatus,devices,org_id)
+  const handleSubmitOrg = async(e)=>{
+    e.preventDefault();
+    try {
+      console.log("BS: ",BASE_URL_LAMBDA)
+      const res = await axios.get(BASE_URL_LAMBDA+"?service=get_org_topic&org_id="+org_id)
+      console.log("res: ",res);
+      if(res.data?.success ===true){
+        const {topics,devices} = res.data;
+        dispatch(setTopics(topics));
+        dispatch(setDevices(devices));
+      }
+      // if res.data
+      // const {topics,devices} = res;
+    } catch (error) {
+      console.log("Error ",error)
+    }
 
+  }
   return (
     <div className="min-h-screen flex flex-col bg-gray-100">
       {/* Sticky Header Section */}
@@ -17,36 +42,50 @@ export default function PumpStatusMonitor() {
           {status}
         </div>
 
-        {pumpMessage && (
-          <div className="mt-2 p-4 bg-white rounded-lg shadow text-2xl font-semibold text-green-600 text-center">
-            Pump Status: {pumpMessage}
+        {/* Input form */}
+      <form onSubmit={handleSubmitOrg} className="flex space-x-4">
+        <input
+          type="text"
+          value={org_id}
+          onChange={(e) => setOrg_id(e.target.value)}
+          placeholder="Enter Org ID"
+          className="border rounded-lg px-4 py-2 w-64"
+        />
+        <button
+          type="submit"
+          className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"
+        >
+          Load Devices
+        </button>
+      </form>
+
+      {/* Devices List */}
+      <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {devices.map((d) => (
+          <div
+            key={d}
+            className="p-4 bg-white rounded-xl shadow flex justify-between items-center"
+          >
+            <div>
+              <div className="font-bold text-lg">{d}</div>
+            </div>
+            <div
+              className={`font-semibold px-3 py-1 rounded ${
+                deviceStatus[d]
+                  ? "bg-green-100 text-green-700"
+                  : "bg-red-100 text-red-700"
+              }`}
+            >
+              {deviceStatus[d] || "Unknown"}
+            </div>
           </div>
-        )}
+        ))}
       </div>
 
-      {/* Scrollable Content Section */}
-      <div className="flex-1 overflow-y-auto px-6 pb-6 mt-4">
-        {disconnectEvents.length > 0 && (
-          <div className="mt-8 w-full max-w-2xl grid grid-cols-1 gap-4">
-            {disconnectEvents.map((event, index) => (
-              <div
-                key={index}
-                className="bg-white shadow-md rounded-xl p-4 flex flex-col items-start"
-              >
-                <div className="text-lg font-bold text-red-600">
-                  🔌 Disconnected At:
-                </div>
-                <div className="text-gray-800 text-lg mb-2">
-                  {event.disconnectTime}
-                </div>
-                <div className="text-blue-600 text-lg font-semibold">
-                  Duration: {event.duration} sec
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+
       </div>
+
+
     </div>
   );
 }
