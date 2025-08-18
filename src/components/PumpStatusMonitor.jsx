@@ -3,7 +3,8 @@ import axios from "axios";
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { AWS_REGION, BASE_URL_LAMBDA } from "../constants";
-import { setDevices, setTopics } from "../slice/webSocketSlice";
+import {  resetWebSocket, setDevices, setTopics } from "../slice/webSocketSlice";
+import { unsubscribeAll } from "./webSocketService2";
 
 
 export default function PumpStatusMonitor() {
@@ -15,16 +16,16 @@ export default function PumpStatusMonitor() {
   const handleSubmitOrg = async(e)=>{
     e.preventDefault();
     try {
-      console.log("BS: ",BASE_URL_LAMBDA)
+      // console.log("BS: ",BASE_URL_LAMBDA)
+      unsubscribeAll();// first unsubscribe
+      dispatch(resetWebSocket()); // then reset data
       const res = await axios.get(BASE_URL_LAMBDA+"?service=get_org_topic&org_id="+org_id)
-      console.log("res: ",res);
+      // console.log("res: ",res);
       if(res.data?.success ===true){
         const {topics,devices} = res.data;
         dispatch(setTopics(topics));
         dispatch(setDevices(devices));
       }
-      // if res.data
-      // const {topics,devices} = res;
     } catch (error) {
       console.log("Error ",error)
     }
@@ -38,9 +39,9 @@ export default function PumpStatusMonitor() {
           Pump Status Monitor
         </h1>
 
-        <div className="text-xl font-medium text-gray-700 mb-2 text-center">
+        {/* <div className="text-xl font-medium text-gray-700 mb-2 text-center">
           {status}
-        </div>
+        </div> */}
 
         {/* Input form */}
       <form onSubmit={handleSubmitOrg} className="flex space-x-4">

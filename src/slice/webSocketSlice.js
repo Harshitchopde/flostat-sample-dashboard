@@ -48,7 +48,8 @@ export const {
     resetWebSocket,
     setDevices,
     setDevicesStatus,
-    setTopics
+    setTopics,
+    resetTopics
 } = webSocketSlice.actions;
 
 export default webSocketSlice.reducer;

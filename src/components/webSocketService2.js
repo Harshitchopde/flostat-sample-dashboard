@@ -73,6 +73,14 @@ export function unsubscribe(topic) {
   subscribedTopics.delete(topic);
   if (client?.connected) client.unsubscribe(topic);
 }
+export function unsubscribeAll (){
+  if(client?.connected){
+    for(const topic of subscribedTopics){
+        client.unsubscribe(topic);
+    }
+  }
+  subscribedTopics.clear() // reset the topics
+}
 
 // --- Connection flow ---
 function connectInitial() {

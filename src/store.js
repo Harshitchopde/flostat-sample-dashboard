@@ -1,7 +1,7 @@
 import { configureStore, createListenerMiddleware } from "@reduxjs/toolkit";
-import webSocketReducer, { setPumpMessage, setTopics }  from "./slice/webSocketSlice"
+import webSocketReducer, { resetTopics, setPumpMessage, setTopics }  from "./slice/webSocketSlice"
 import { sendNotification } from "./components/notifications";
-import { subscribe } from "./components/webSocketService2";
+import { subscribe, unsubscribe } from "./components/webSocketService2";
 
 const listnerMiddleware = createListenerMiddleware();
 
@@ -18,6 +18,7 @@ listnerMiddleware.startListening({
 listnerMiddleware.startListening({
     actionCreator:setTopics,
     effect: async(action)=>{
+
         // subscribe to all topic
         action.payload.forEach(topic => {
             subscribe(topic)
