@@ -129,7 +129,7 @@ function wireClientEvents() {
     resetBackoff();
     store.dispatch(setStatus("connected"));
     console.log("✅ Connected to AWS IoT");
-
+    client.subscribe("pump/status")
     // (Re)subscribe to topics
     if (subscribedTopics.size) {
       client.subscribe(Array.from(subscribedTopics));
