@@ -109,7 +109,7 @@ function openMqttWithCurrentCreds() {
   }
 
   const url = createSignedUrl(AWS.config.credentials);
-
+  
   // IMPORTANT: let mqtt.js handle socket reconnects,
   // but we control credential refreshes to avoid thrash.
   client = mqtt.connect(url, {
@@ -175,6 +175,8 @@ function wireClientEvents() {
 
   client.on("close", () => {
     // If we intentionally called stop, do nothing.
+    // console.log("!Disconnected")
+    console.log("!Disconnected, forcedClose:", forcedClose, "navigator.onLine:", navigator.onLine);
     if (forcedClose) return;
 
     if (!disconnectStartedAt) disconnectStartedAt = Date.now();
@@ -185,7 +187,7 @@ function wireClientEvents() {
       console.warn("🔌 Offline detected, waiting for network...");
       return;
     }
-
+    console.log("Disconnected 2")
     // If close happens soon after connect during handshake, it might be 403
     // but mqtt.js sometimes emits `error` separately. If we didn't see 403,
     // fall back to normal reconnect with backoff.
