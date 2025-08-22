@@ -35,7 +35,14 @@ const webSocketSlice = createSlice({
             const {device,status} = action.payload;
             state.deviceStatus[device] = status;
         },
-        resetWebSocket: () => initialState,
+        resetWebSocket: (state) => {
+            state.pumpMessage = "";
+            state.disconnectEvents = [];
+            state.devices = [];
+            state.deviceStatus = {};
+            state.topics = [];
+            state.error = null;
+        }
     
     }
 });
