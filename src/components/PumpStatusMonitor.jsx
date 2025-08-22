@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { AWS_REGION, BASE_URL_LAMBDA } from "../constants";
 import {  resetWebSocket, setDevices, setTopics } from "../slice/webSocketSlice";
-import { unsubscribeAll } from "./webSocketService2";
+import { subscribe, unsubscribeAll } from "./webSocketService2";
 
 
 export default function PumpStatusMonitor() {
@@ -39,9 +39,9 @@ export default function PumpStatusMonitor() {
           Pump Status Monitor
         </h1>
 
-        {/* <div className="text-xl font-medium text-gray-700 mb-2 text-center">
+        <div className="text-xl font-medium text-gray-700 mb-2 text-center">
           {status}
-        </div> */}
+        </div>
 
         {/* Input form */}
       <form onSubmit={handleSubmitOrg} className="flex space-x-4">

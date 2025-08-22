@@ -33,7 +33,10 @@ let forcedClose = false;
 // backoff
 let reconnectAttempts = 0;
 function nextBackoffMs() {
-  const exp = Math.min(MAX_RECONNECT_MS, BASE_RECONNECT_MS * 2 ** reconnectAttempts);
+  const exp = Math.min(
+    MAX_RECONNECT_MS,
+    BASE_RECONNECT_MS * 2 ** reconnectAttempts
+  );
   const jitter = Math.floor(Math.random() * (exp * 0.3)); // +/- 30% jitter
   return Math.max(BASE_RECONNECT_MS, exp - jitter);
 }
@@ -61,42 +64,65 @@ export function stopWebSocket() {
 
 export function publish(topic, payload, opts = {}) {
   if (!client || !client.connected) throw new Error("MQTT not connected");
-  client.publish(topic, typeof payload === "string" ? payload : JSON.stringify(payload), opts);
+  client.publish(
+    topic,
+    typeof payload === "string" ? payload : JSON.stringify(payload),
+    opts
+  );
 }
 
 export function subscribe(topic) {
   subscribedTopics.add(topic);
   if (client?.connected) client.subscribe(topic);
 }
+export function subscribeInBatch(topics,batchSize=5){
+  const topicArray = Array.from(topics);
+  for (let i = 0; i < topicArray.length; i += batchSize) {
+    const batch = topicArray.slice(i, i + batchSize);
+    client.subscribe(batch, (err, granted) => {
+      if (err) {
+        console.error("❌ Failed to subscribe batch:", batch, err.message);
+      } else {
+        console.log("✅ Subscribed batch:", granted.map(g => g.topic));
+      }
+    });
+    console.log("Batch: ",batch)
+  }
+}
 
 export function unsubscribe(topic) {
   subscribedTopics.delete(topic);
   if (client?.connected) client.unsubscribe(topic);
 }
-export function unsubscribeAll (){
-  if(client?.connected){
-    for(const topic of subscribedTopics){
-        client.unsubscribe(topic);
+export function unsubscribeAll() {
+  if (client?.connected) {
+    for (const topic of subscribedTopics) {
+      client.unsubscribe(topic);
     }
   }
-  subscribedTopics.clear() // reset the topics
+  subscribedTopics.clear(); // reset the topics
 }
 
 // --- Connection flow ---
 function connectInitial() {
+  console.log("Connecting...");
   store.dispatch(setStatus("connecting"));
 
   AWS.config.update({
     region: AWS_REGION,
-    credentials: new AWS.CognitoIdentityCredentials({ IdentityPoolId: IDENTITY_POOL }),
+    credentials: new AWS.CognitoIdentityCredentials({
+      IdentityPoolId: IDENTITY_POOL,
+    }),
   });
 
   AWS.config.credentials.get((err) => {
     if (err) {
+      console.error("Cognito Error ", err.message);
       store.dispatch(setError(`Cognito Error: ${err.message}`));
       scheduleReconnect(); // will retry with backoff
       return;
     }
+    console.log("Open Mqtt Current creds");
     openMqttWithCurrentCreds();
   });
 }
@@ -109,7 +135,7 @@ function openMqttWithCurrentCreds() {
   }
 
   const url = createSignedUrl(AWS.config.credentials);
-  
+
   // IMPORTANT: let mqtt.js handle socket reconnects,
   // but we control credential refreshes to avoid thrash.
   client = mqtt.connect(url, {
@@ -129,10 +155,13 @@ function wireClientEvents() {
     resetBackoff();
     store.dispatch(setStatus("connected"));
     console.log("✅ Connected to AWS IoT");
-    client.subscribe("pump/status")
+    // client.subscribe("pump/status");
     // (Re)subscribe to topics
     if (subscribedTopics.size) {
-      client.subscribe(Array.from(subscribedTopics));
+      // client.subscribe(Array.from(subscribedTopics)); // fine with small array topic size < 128 KB
+      // Batch subscription handles it 
+      subscribeInBatch(subscribedTopics);
+
     }
 
     // record downtime if any
@@ -151,12 +180,12 @@ function wireClientEvents() {
   client.on("message", (topic, message) => {
     // Application-specific handling
     store.dispatch(setPumpMessage(message.toString()));
-      try {
+    try {
       const deviceDetail = JSON.parse(message.toString());
       const device = Object.keys(deviceDetail)[0];
       const status = deviceDetail[device];
       // console.log("d ",device+" status "+status)
-      store.dispatch(setDevicesStatus({device,status}))
+      store.dispatch(setDevicesStatus({ device, status }));
     } catch (e) {
       console.error("Invalid JSON:", e);
     }
@@ -176,7 +205,13 @@ function wireClientEvents() {
   client.on("close", () => {
     // If we intentionally called stop, do nothing.
     // console.log("!Disconnected")
-    console.log("!Disconnected, forcedClose:", forcedClose, "navigator.onLine:", navigator.onLine);
+    console.log(
+      "!Disconnected, forcedClose:",
+      forcedClose,
+      "navigator.onLine:",
+      navigator.onLine
+    );
+    // console.log("Close Reasion ", reasion, "code:", code);
     if (forcedClose) return;
 
     if (!disconnectStartedAt) disconnectStartedAt = Date.now();
@@ -187,7 +222,7 @@ function wireClientEvents() {
       console.warn("🔌 Offline detected, waiting for network...");
       return;
     }
-    console.log("Disconnected 2")
+    console.log("Disconnected 2");
     // If close happens soon after connect during handshake, it might be 403
     // but mqtt.js sometimes emits `error` separately. If we didn't see 403,
     // fall back to normal reconnect with backoff.
@@ -222,7 +257,9 @@ function scheduleReconnect() {
   const delay = nextBackoffMs();
   reconnectAttempts += 1;
 
-  console.warn(`🔁 Reconnecting in ${delay} ms (attempt ${reconnectAttempts})...`);
+  console.warn(
+    `🔁 Reconnecting in ${delay} ms (attempt ${reconnectAttempts})...`
+  );
   reconnectTimer = setTimeout(() => {
     clearReconnectTimer();
     // If offline, wait; online handler will connect.
@@ -230,15 +267,21 @@ function scheduleReconnect() {
     safeEndClient();
     // Instead of directly reconnecting, try refreshing credentials first
     const now = Date.now();
-    const credsExist = AWS.config.credentials && AWS.config.credentials.accessKeyId;
+    const credsExist =
+      AWS.config.credentials && AWS.config.credentials.accessKeyId;
     const credsExpiredSoon =
       credsExist &&
       AWS.config.credentials.expireTime &&
       AWS.config.credentials.expireTime.getTime() - now < 60_000; // less than 1 min left
-    console.warn("schedule: ",credsExpiredSoon,credsExist)
-    console.warn("Expire time: ",AWS.config.credentials.expireTime.getTime() - now )
+    console.warn("schedule: ", credsExpiredSoon, credsExist);
+    console.warn(
+      "Expire time: ",
+      AWS.config.credentials.expireTime?.getTime() - now
+    );
     if (!credsExist || credsExpiredSoon) {
-      console.warn("🔄 Credentials missing/expiring soon, refreshing before reconnect...");
+      console.warn(
+        "🔄 Credentials missing/expiring soon, refreshing before reconnect..."
+      );
       credentialRefreshAndReconnect("expire cred");
     } else {
       openMqttWithCurrentCreds();
